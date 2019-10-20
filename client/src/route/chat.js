@@ -76,6 +76,8 @@ const Chat = (props) => {
        socket.on('brodcastMessage', (messageData) => {
            console.log(messageData);
            renderDocument(messageData.name, messageData.message);
+           const chatMessageElement = document.getElementById("chatlist");
+           chatMessageElement.scrollTop = chatMessageElement.scrollHeight - chatMessageElement.clientHeight;
        })
 
     }, []);
