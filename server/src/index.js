@@ -15,6 +15,17 @@ var kafka = require('kafka-node'),
     producer = new Producer(client),
     km = new KeyedMessage('key', 'message');
 
+var mongoose = require('mongoose');
+const db = mongoose.connection;
+
+const ChatModel = require('./model/chatmodel');
+
+mongoose.connect(keys.mongo.mongoHost, {useNewUrlParser: true});
+
+db.on("connected", ()=>{console.log(" Database Connection Successful ");});
+db.on("error", (err) => {throw new Error(err);})
+db.on("disconnected", ()=>{console.log(" Database disconnected ");});
+
 var emoji = require('node-emoji');
 
 const port = process.env.port || 4000;
@@ -47,6 +58,7 @@ io.on('connection', (socket) => {
 
     socket.on('message', (message) => {
         console.log(message);
+        new ChatModel({name : message.name, chatMessage : message.message, roomId: room}).save();
         producer.send([{topic : keys.kafka.topic, messages : JSON.stringify(message), partition: 0 }],(err, data) => {
            console.log(data) ;
         })
@@ -64,6 +76,13 @@ io.on('connection', (socket) => {
        io.to(room).emit('userList', users.getAllUsers(room));                                                                                
     });
 });
+
+process.on('SIGINT', function() { 
+    db.close(() => {
+        console.log('Mongoose default connection disconnected through app termination'); 
+        process.exit(0); 
+    })
+})
 
 server.listen(port, ()=> {
     console.log(`listening on *:${port}`)
